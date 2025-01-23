@@ -104,9 +104,15 @@ def load_json():
 
         # 渲染数据到表格
         for entry in data.get("items", []):  # 获取 "items" 列表
-            if entry.get("cj") == "缓考":  # 跳过缓考的课程
-                continue
-            score = float(entry.get("cj", 0))
+            try:
+                score = float(entry.get("cj", 0))
+            except Exception:
+                if entry.get("cj") == "优秀":
+                    score = 95
+                elif entry.get("cj") == "良好":
+                    score = 85
+                else:
+                    continue
             gpa = calculate_gpa(score)  # 计算绩点
             treeview.insert(
                 "",
