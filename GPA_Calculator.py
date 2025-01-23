@@ -2,6 +2,20 @@ import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import json
 import os
+import sys
+
+
+# 获取资源的绝对路径
+def resource_path(relative_path):
+    """获取资源的绝对路径。"""
+    try:
+        # PyInstaller 创建的临时文件夹路径
+        base_path = sys._MEIPASS
+    except AttributeError:
+        # 正常运行的路径
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 # 保存输入框内容到文件
@@ -364,11 +378,14 @@ notebook.add(donate_tab, text="打赏")
 
 # 加载打赏图片
 try:
-    donate_image = tk.PhotoImage(file="donate_image.png")  # 替换为你的图片路径
+    donate_image_path = resource_path("donate_image.png")  # 获取图片路径
+    donate_image = tk.PhotoImage(file=donate_image_path)
     image_label = tk.Label(donate_tab, image=donate_image)
     image_label.pack(pady=10)
+    donate_label = tk.Label(donate_tab, image=donate_image)
+    donate_label.pack(pady=20)
 except Exception as e:
-    print(f"加载图片失败: {e}")
+    print(f"加载打赏图片失败: {e}")
 
 
 # 在窗口关闭时保存输入框内容
