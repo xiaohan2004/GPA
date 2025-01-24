@@ -151,7 +151,7 @@ def sort_table(col_index, reverse=False):
         treeview.delete(o)
 
     # 添加排序后的数据
-    for idx, (values, item) in enumerate(data):
+    for values, item in data:
         treeview.insert("", "end", values=values)
 
 
@@ -311,15 +311,23 @@ def on_edit(event):
         # 更新表格中的值
         treeview.item(
             item,
-            values=(  # 更新对应的列
+            values=(
                 treeview.item(item)["values"][0],
                 treeview.item(item)["values"][1],
-                treeview.item(item)["values"][2] if col_index != 2 else new_value,
-                treeview.item(item)["values"][3] if col_index != 3 else new_value,
+                (
+                    treeview.item(item)["values"][2]
+                    if col_index != 2
+                    else new_value
+                ),
+                (
+                    treeview.item(item)["values"][3]
+                    if col_index != 3
+                    else new_value
+                ),
                 (
                     treeview.item(item)["values"][4]
-                    if col_index != 4 and col_index != 2
-                    else calculate_gpa(float(new_value))  # 更新绩点
+                    if col_index not in [4, 2]
+                    else calculate_gpa(float(new_value))
                 ),
             ),
         )
