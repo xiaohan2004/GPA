@@ -93,6 +93,19 @@ def calculate_weighted_scores():
         messagebox.showerror("错误", f"计算出错: {e}")
 
 
+def get_score(entry):
+    """获取成绩，处理异常情况并返回分数"""
+    try:
+        return float(entry.get("cj", 0))
+    except Exception:
+        if entry.get("cj") == "优秀":
+            return 95.0
+        elif entry.get("cj") == "良好":
+            return 85.0
+        else:
+            return None  # 返回 None 表示成绩无法处理
+
+
 # 加载输入框中的JSON数据并显示到表格
 def load_json():
     try:
@@ -105,27 +118,45 @@ def load_json():
 
         # 渲染数据到表格
         for entry in data.get("items", []):  # 获取 "items" 列表
-            try:
-                score = float(entry.get("cj", 0))
-            except Exception:
-                if entry.get("cj") == "优秀":
-                    score = 95
-                elif entry.get("cj") == "良好":
-                    score = 85
-                else:
+            if entry.get("ksxz") == "重修":
+                if not repair_var.get():  # 如果未勾选“计算重修”，则跳过
                     continue
-            gpa = calculate_gpa(score)  # 计算绩点
-            treeview.insert(
-                "",
-                "end",
-                values=(
-                    entry.get("kch", ""),
-                    entry.get("kcmc", ""),
-                    score,
-                    entry.get("xf", ""),
-                    gpa,
-                ),
-            )
+                course_code = entry.get("kch")
+                score = get_score(entry)
+                if score is None:
+                    continue  # 如果分数无法处理，跳过该条记录
+                for child in treeview.get_children():
+                    # 如果表格中已经有该课程的成绩，则只保留最高分
+                    if str(treeview.item(child)["values"][0]) == str(
+                        course_code
+                    ) and score > float(treeview.item(child)["values"][2]):
+                        # 更新原有成绩
+                        treeview.item(
+                            child,
+                            values=(
+                                entry.get("kch", ""),
+                                entry.get("kcmc", ""),
+                                score,
+                                entry.get("xf", ""),
+                                calculate_gpa(score),
+                            ),
+                        )
+            else:
+                score = get_score(entry)
+                if score is None:
+                    continue  # 如果分数无法处理，跳过该条记录
+                gpa = calculate_gpa(score)  # 计算绩点
+                treeview.insert(
+                    "",
+                    "end",
+                    values=(
+                        entry.get("kch", ""),
+                        entry.get("kcmc", ""),
+                        score,
+                        entry.get("xf", ""),
+                        gpa,
+                    ),
+                )
 
     except json.JSONDecodeError:
         messagebox.showerror("错误", "输入的不是有效的 JSON 格式！")
@@ -340,36 +371,44 @@ json_input_label.pack(pady=5)
 json_input = tk.Text(home_tab, height=10, width=80)
 json_input.pack(pady=5)
 
-# 按钮
+# 按钮框架
 button_frame = tk.Frame(home_tab)
 button_frame.pack(pady=10)
 
+# 加载按钮
 load_button = tk.Button(button_frame, text="加载", command=load_json)
 load_button.grid(row=0, column=0, padx=10)
 
-clear_button = tk.Button(button_frame, text="清空", command=clear_input)
-clear_button.grid(row=0, column=1, padx=10)
+# 新增一个单选按钮“计算重修”
+repair_var = tk.BooleanVar()  # 用于存储单选按钮的值
+repair_check = tk.Checkbutton(button_frame, text="计算重修", variable=repair_var)
+repair_check.grid(row=0, column=1, padx=10)
 
+# 清空按钮
+clear_button = tk.Button(button_frame, text="清空", command=clear_input)
+clear_button.grid(row=0, column=2, padx=10)
+
+# 计算按钮
 calculate_button = tk.Button(
     button_frame, text="计算", command=calculate_weighted_scores
 )
-calculate_button.grid(row=0, column=2, padx=10)
+calculate_button.grid(row=0, column=3, padx=10)
 
 # 切换排序按钮
 toggle_sort_button = tk.Button(button_frame, text="成绩升序", command=toggle_sort_order)
-toggle_sort_button.grid(row=0, column=3, padx=10)
+toggle_sort_button.grid(row=0, column=4, padx=10)
 
 # 新增按钮
 add_row_button = tk.Button(button_frame, text="新增课程", command=add_new_row)
-add_row_button.grid(row=0, column=4, padx=10)
+add_row_button.grid(row=0, column=5, padx=10)
 
 # 删除按钮
 delete_button = tk.Button(button_frame, text="删除行", command=delete_selected_row)
-delete_button.grid(row=0, column=5, padx=10)
+delete_button.grid(row=0, column=6, padx=10)
 
 # 导出按钮
 export_button = tk.Button(button_frame, text="导出为 Excel", command=export_to_excel)
-export_button.grid(row=0, column=6, padx=10)
+export_button.grid(row=0, column=7, padx=10)
 
 # 表格
 columns = ("课程代码", "课程名称", "成绩", "学分", "绩点")
@@ -448,7 +487,7 @@ instructions_text = """
 1. 在主页的输入框中粘贴 JSON 数据。
 注：JSON 数据通过教务处的“信息查询->学生成绩查询->F12打开开发者工具->点击查询按钮”，然后
 在开发者工具的网络选项中点击刚刚发送的查询请求，点击“预览”或“响应”，复制其中的 JSON 数据即可。
-2. 点击“加载”按钮，将数据加载到表格中。
+2. 点击“加载”按钮，将数据加载到表格中。并且可以选择“计算重修”来计算重修课程的最高分。
 3. 点击“计算”按钮，计算加权平均分和加权学分绩。
 4. 双击表格中的单元格可以编辑数据。
 5. 点击“新增课程”按钮可以手动添加课程。
