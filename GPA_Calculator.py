@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import pandas as pd  # 用于导出 Excel
+import webbrowser
 
 
 # 获取资源的绝对路径
@@ -493,11 +494,24 @@ instructions_text = """
 5. 点击“新增课程”按钮可以手动添加课程。
 6. 点击“删除行”按钮可以删除选中的行。
 7. 点击“导出为 Excel”按钮可以将表格数据导出为 Excel 文件。
+8. 看不懂 JSON 数据怎么获取吗？对于操作还有什么疑问吗？点击下方的链接查看详细说明。
 """
+
+# 创建一个标签显示操作说明文本
 instructions_label = tk.Label(
     instructions_frame, text=instructions_text, justify="left", font=("Arial", 12)
 )
 instructions_label.pack(pady=10)
+
+# 创建一个超链接标签
+link = tk.Label(instructions_frame, text="点击查看详细说明", fg="blue", cursor="hand2")
+link.pack(pady=10)
+
+# 绑定点击事件，跳转到指定链接
+def open_link(event):
+    webbrowser.open("https://dandansad.com/index.php/2025/01/24/%e6%88%90%e7%bb%a9%e8%ae%a1%e7%ae%97%e5%99%a8%e4%bd%bf%e7%94%a8%e8%af%b4%e6%98%8e/")  # 替换为你想跳转的网址
+
+link.bind("<Button-1>", open_link)
 
 # 关于选项卡
 about_tab = ttk.Frame(notebook)
