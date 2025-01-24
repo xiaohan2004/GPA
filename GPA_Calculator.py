@@ -223,6 +223,16 @@ def add_new_row():
     add_window.mainloop()
 
 
+# 删除选中行
+def delete_selected_row():
+    selected_item = treeview.selection()  # 获取选中的行
+    if not selected_item:
+        messagebox.showwarning("警告", "请先选择要删除的行！")
+        return
+    for item in selected_item:
+        treeview.delete(item)  # 删除选中的行
+
+
 # 设置窗口
 root = tk.Tk()
 root.title("成绩计算器")
@@ -264,6 +274,10 @@ toggle_sort_button.grid(row=0, column=3, padx=10)
 # 新增按钮
 add_row_button = tk.Button(button_frame, text="新增课程", command=add_new_row)
 add_row_button.grid(row=0, column=4, padx=10)
+
+# 删除按钮
+delete_button = tk.Button(button_frame, text="删除行", command=delete_selected_row)
+delete_button.grid(row=0, column=5, padx=10)
 
 # 表格
 columns = ("课程代码", "课程名称", "成绩", "学分", "绩点")
@@ -354,6 +368,7 @@ instructions_text = """
 3. 点击“计算”按钮，计算加权平均分和加权学分绩。
 4. 双击表格中的单元格可以编辑数据。
 5. 点击“新增课程”按钮可以手动添加课程。
+6. 点击“删除行”按钮可以删除选中的行。
 """
 instructions_label = tk.Label(
     instructions_frame, text=instructions_text, justify="left", font=("Arial", 12)
