@@ -1,8 +1,9 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
+from tkinter import ttk, messagebox, simpledialog, filedialog
 import json
 import os
 import sys
+import pandas as pd  # 用于导出 Excel
 
 
 # 获取资源的绝对路径
@@ -233,6 +234,93 @@ def delete_selected_row():
         treeview.delete(item)  # 删除选中的行
 
 
+# 导出为 Excel
+def export_to_excel():
+    # 弹出选择文件保存对话框
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".xlsx",
+        filetypes=[("Excel 文件", "*.xlsx"), ("所有文件", "*.*")],
+    )
+    if not file_path:
+        return  # 用户取消保存
+
+    # 弹出选择对话框
+    choice = messagebox.askquestion(
+        "选择导出内容",
+        "是否导出表格中的数据？\n（选择“否”将导出 JSON 输入框中的数据）",
+    )
+
+    if choice == "yes":  # 如果选择了“是”，导出表格中的数据
+        # 获取表格中的数据
+        data = []
+        for child in treeview.get_children():
+            values = treeview.item(child)["values"]
+            data.append(values)
+
+        if not data:
+            messagebox.showwarning("警告", "表格中没有数据！")
+            return
+
+        # 将数据转换为 DataFrame
+        df = pd.DataFrame(
+            data, columns=["课程代码", "课程名称", "成绩", "学分", "绩点"]
+        )
+
+    else:  # 如果选择了“否”，导出 JSON 输入框中的数据
+        try:
+            # 解析 JSON 数据
+            data = json.loads(json_input.get("1.0", "end-1c"))
+            items = data.get("items", [])
+
+            # 检查 items 是否为空
+            if not items:
+                messagebox.showwarning("警告", "JSON 输入框中没有有效数据！")
+                return
+
+            # 提取需要的字段
+            extracted_data = []
+            for item in items:
+                extracted = {
+                    "学年": item.get("xnmmc"),
+                    "学期": item.get("xqmmc"),
+                    "课程代码": item.get("kch"),
+                    "课程名称": item.get("kcmc"),
+                    "课程性质": item.get("kcxzmc"),
+                    "学分": item.get("xf"),
+                    "成绩备注": item.get("cjbz"),
+                    "绩点": item.get("jd"),
+                    "成绩性质": item.get("ksxz"),
+                    # "是否学位课程": item.get("sfkj"),  # 解析有误，并且无意义，不导出
+                    "开课学院": item.get("kkbmmc"),
+                    "课程标记": item.get("kcbj"),
+                    "课程类别": item.get("kclbmc"),
+                    "课程归属": item.get("kcgsmc"),
+                    "教学班": item.get("jxbmc"),
+                    "任课教师": item.get("jsxm"),
+                    # "考核方式": item.get("khfsmc"),  # 无意义，有些老师乱填，不导出
+                    # "学号": item.get("xh"),  # 无意义，不导出
+                    # "姓名": item.get("xm"),  # 无意义，不导出
+                    # "学生标记": item.get("sfzx"),  # 解析有误，并且无意义，不导出
+                    "成绩": item.get("cj"),
+                    "是否成绩作废": item.get("cjsfzf"),
+                    "学分绩点": item.get("xfjd"),
+                }
+                extracted_data.append(extracted)
+
+            # 将提取的数据转换为 DataFrame
+            df = pd.DataFrame(extracted_data)
+
+        except Exception as e:
+            messagebox.showerror("错误", f"解析 JSON 数据失败: {e}")
+
+    # 导出为 Excel
+    try:
+        df.to_excel(file_path, index=False)
+        messagebox.showinfo("成功", f"数据已导出到 {file_path}")
+    except Exception as e:
+        messagebox.showerror("错误", f"导出失败: {e}")
+
+
 # 设置窗口
 root = tk.Tk()
 root.title("成绩计算器")
@@ -278,6 +366,10 @@ add_row_button.grid(row=0, column=4, padx=10)
 # 删除按钮
 delete_button = tk.Button(button_frame, text="删除行", command=delete_selected_row)
 delete_button.grid(row=0, column=5, padx=10)
+
+# 导出按钮
+export_button = tk.Button(button_frame, text="导出为 Excel", command=export_to_excel)
+export_button.grid(row=0, column=6, padx=10)
 
 # 表格
 columns = ("课程代码", "课程名称", "成绩", "学分", "绩点")
@@ -328,16 +420,8 @@ def on_edit(event):
             values=(
                 treeview.item(item)["values"][0],
                 treeview.item(item)["values"][1],
-                (
-                    treeview.item(item)["values"][2]
-                    if col_index != 2
-                    else new_value
-                ),
-                (
-                    treeview.item(item)["values"][3]
-                    if col_index != 3
-                    else new_value
-                ),
+                (treeview.item(item)["values"][2] if col_index != 2 else new_value),
+                (treeview.item(item)["values"][3] if col_index != 3 else new_value),
                 (
                     treeview.item(item)["values"][4]
                     if col_index not in [4, 2]
@@ -369,6 +453,7 @@ instructions_text = """
 4. 双击表格中的单元格可以编辑数据。
 5. 点击“新增课程”按钮可以手动添加课程。
 6. 点击“删除行”按钮可以删除选中的行。
+7. 点击“导出为 Excel”按钮可以将表格数据导出为 Excel 文件。
 """
 instructions_label = tk.Label(
     instructions_frame, text=instructions_text, justify="left", font=("Arial", 12)
