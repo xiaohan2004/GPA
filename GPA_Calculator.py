@@ -117,31 +117,22 @@ def load_json():
         for item in treeview.get_children():
             treeview.delete(item)
 
+        # 重修课程列表
+        repair_courses = []
         # 渲染数据到表格
         for entry in data.get("items", []):  # 获取 "items" 列表
-            if entry.get("ksxz") == "重修":
-                if not repair_var.get():  # 如果未勾选“计算重修”，则跳过
-                    continue
-                course_code = entry.get("kch")
+            if entry.get("ksxz") == "重修":  # 如果是重修课程则先存储到列表中
                 score = get_score(entry)
                 if score is None:
                     continue  # 如果分数无法处理，跳过该条记录
-                for child in treeview.get_children():
-                    # 如果表格中已经有该课程的成绩，则只保留最高分
-                    if str(treeview.item(child)["values"][0]) == str(
-                        course_code
-                    ) and score > float(treeview.item(child)["values"][2]):
-                        # 更新原有成绩
-                        treeview.item(
-                            child,
-                            values=(
-                                entry.get("kch", ""),
-                                entry.get("kcmc", ""),
-                                score,
-                                entry.get("xf", ""),
-                                calculate_gpa(score),
-                            ),
-                        )
+                repair_courses.append(
+                    {
+                        "kch": entry.get("kch", ""),
+                        "kcmc": entry.get("kcmc", ""),
+                        "cj": score,
+                        "xf": entry.get("xf", ""),
+                    }
+                )
             else:
                 score = get_score(entry)
                 if score is None:
@@ -158,6 +149,40 @@ def load_json():
                         gpa,
                     ),
                 )
+
+        # 处理重修课程：遍历重修课程列表，如果表格中已经有该课程的成绩，则只保留最高分；否则插入新的记录
+        if repair_var.get():  # 如果勾选了“计算重修”
+            for course in repair_courses:
+                found = False
+                for item in treeview.get_children():
+                    if str(treeview.item(item)["values"][0]) == str(course["kch"]):
+                        found = True
+                        if course["cj"] > float(treeview.item(item)["values"][2]):
+                            # 更新原有成绩
+                            treeview.item(
+                                item,
+                                values=(
+                                    course["kch"],
+                                    course["kcmc"],
+                                    course["cj"],
+                                    course["xf"],
+                                    calculate_gpa(course["cj"]),
+                                ),
+                            )
+                        break
+                if not found:
+                    gpa = calculate_gpa(course["cj"])  # 计算绩点
+                    treeview.insert(
+                        "",
+                        "end",
+                        values=(
+                            course["kch"],
+                            course["kcmc"],
+                            course["cj"],
+                            course["xf"],
+                            gpa,
+                        ),
+                    )
 
     except json.JSONDecodeError:
         messagebox.showerror("错误", "输入的不是有效的 JSON 格式！")
@@ -486,7 +511,8 @@ instructions_frame.pack(pady=20, padx=20, fill="both", expand=True)
 
 instructions_text = """
 1. 在主页的输入框中粘贴 JSON 数据。
-注：JSON 数据通过教务处的“信息查询->学生成绩查询->F12打开开发者工具->点击查询按钮”，然后
+注：
+JSON 数据通过教务处的“信息查询->学生成绩查询->F12打开开发者工具->点击查询按钮”，然后
 在开发者工具的网络选项中点击刚刚发送的查询请求，点击“预览”或“响应”，复制其中的 JSON 数据即可。
 2. 点击“加载”按钮，将数据加载到表格中。并且可以选择“计算重修”来计算重修课程的最高分。
 3. 点击“计算”按钮，计算加权平均分和加权学分绩。
@@ -495,7 +521,9 @@ instructions_text = """
 6. 点击“删除行”按钮可以删除选中的行。
 7. 点击“导出为 Excel”按钮可以将表格数据导出为 Excel 文件。
 8. 看不懂 JSON 数据怎么获取吗？对于操作还有什么疑问吗？点击下方的链接查看详细说明。
-注：计算功能计算的是当前表格中的数据，勾选了“计算重修”之后要重新点击“加载”按钮再计算才会生效。
+注：
+计算功能计算的是当前表格中的数据，勾选了“计算重修”之后要重新点击“加载”按钮再计算才会生效。
+勾选“计算重修”后，如果表格中已有重修课程的成绩，则只保留最高分；若无则插入重修课程的成绩。
 """
 
 # 创建一个标签显示操作说明文本
@@ -508,9 +536,13 @@ instructions_label.pack(pady=10)
 link = tk.Label(instructions_frame, text="点击查看详细说明", fg="blue", cursor="hand2")
 link.pack(pady=10)
 
+
 # 绑定点击事件，跳转到指定链接
 def open_link(event):
-    webbrowser.open("https://dandansad.com/index.php/2025/01/24/%e6%88%90%e7%bb%a9%e8%ae%a1%e7%ae%97%e5%99%a8%e4%bd%bf%e7%94%a8%e8%af%b4%e6%98%8e/")  # 替换为你想跳转的网址
+    webbrowser.open(
+        "https://dandansad.com/index.php/2025/01/24/%e6%88%90%e7%bb%a9%e8%ae%a1%e7%ae%97%e5%99%a8%e4%bd%bf%e7%94%a8%e8%af%b4%e6%98%8e/"
+    )  # 替换为你想跳转的网址
+
 
 link.bind("<Button-1>", open_link)
 
