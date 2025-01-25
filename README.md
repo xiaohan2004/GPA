@@ -9,7 +9,7 @@
 2. 运行exe可执行文件
 3. 使用
    ```bash
-   pyinstaller --onefile --windowed --icon=favicon.ico --add-data "donate_image.png;." --clean .\GPA_Calculator.py
+   pyinstaller --onefile --windowed --icon=favicon.ico --add-data "donate_image.png;." --clean --upx-dir "D:\upx" .\GPA_Calculator.py
    ```
    打包源代码运行
 
